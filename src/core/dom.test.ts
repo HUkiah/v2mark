@@ -21,7 +21,10 @@ async function makeService(
   )
   const store = {
     meta: { version: 1 as const, updated: 1 },
-    data: {} as Record<string, { tags: string[]; meta: Record<string, number> }>,
+    data: {} as Record<
+      string,
+      { tags: string[]; meta: Record<string, number | string> }
+    >,
   }
   for (const [name, tags] of Object.entries(entries)) {
     store.data[memberKey(name)] = {
