@@ -48,4 +48,6 @@ npm run build      # 构建 dist/v2mark.user.js（不压缩，GreasyFork 规则�
 
 ## 当前状态
 
-M1 开发中（本地标签增删改查、特殊标签效果、导入导出）。完成标准见 CONTRIBUTING.md 的"测试"一节三条验收。
+v0.1.0（M1）已实现：标签渲染、编辑面板、管理面板、UTags 互通导入导出。31 个单测（vitest；DOM 集成测试用 happy-dom，文件头标注 `@vitest-environment happy-dom`）。
+
+待办：真机验收三条（见 CONTRIBUTING.md）；M2 同步（WebDAV、Gist，条目级合并）。线上 v2ex.com 有 Cloudflare 挑战页，自动化浏览器进不去，DOM 验证一律走 happy-dom 集成测试。

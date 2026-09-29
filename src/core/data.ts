@@ -24,6 +24,8 @@ export interface BookmarkEntry {
 export interface StoreMeta {
   version: 1
   updated: number
+  /** 置顶标签（输入面板快捷点选的第一行），随数据一起同步 */
+  pinned?: string[]
 }
 
 export interface BookmarksStore {

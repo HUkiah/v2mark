@@ -9,22 +9,20 @@
 
 ## 功能
 
-状态：M1 开发中，尚未发布首个版本。
+v0.1.0（M1）已实现：
 
-计划功能：
-
-- 给用户挂标签，逗号分隔，支持多个
-- 置顶标签、最近常用标签快捷点选
-- 特殊标签过滤：sb、标题党半透明，block、屏蔽不显示
-- 管理面板：标签列表、搜索、导出导入 JSON
-- 多设备同步（WebDAV、坚果云等，M2）
+- 帖子列表、回复页给用户挂标签；个人主页标题挂标签
+- 悬停用户名出现 🏷️ 图标，点击打开编辑面板：逗号分隔多标签、置顶与常用标签点选
+- 已有标签常驻显示
+- 特殊标签过滤：sb、标题党等半透明，block、屏蔽等隐藏该用户的帖子行
+- 管理面板（脚本菜单）：搜索、编辑、删除、导出导入 JSON
+- 数据格式与 UTags（小鱼标签）双向互通，可从 UTags 直接迁移
+- 多设备同步（WebDAV、坚果云等，M2 开发中）
 
 ## 安装
 
-脚本尚未发布。首个版本发布后，从这里安装：
-
+- 从 GitHub 安装：[dist/v2mark.user.js](https://github.com/HUkiah/v2mark/raw/main/dist/v2mark.user.js)
 - GreasyFork（发布后更新链接）
-- 直接从 GitHub 安装：[dist/v2mark.user.js](https://github.com/HUkiah/v2mark/raw/main/dist/v2mark.user.js)
 
 需要先安装脚本管理器：[Tampermonkey](https://www.tampermonkey.net/) 或 [Violentmonkey](https://violentmonkey.github.io/)。
 

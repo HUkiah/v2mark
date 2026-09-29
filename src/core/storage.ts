@@ -16,27 +16,51 @@ export interface Storage {
 
 const STORAGE_KEY = 'v2mark.store'
 
-/** GM 存储实现（Tampermonkey、Violentmonkey 桌面版） */
+/** GM 存储实现（Tampermonkey、Violentmonkey 桌面版），GM API 缺失时降级 localStorage */
 export function createGmStorage(): Storage {
+  if (typeof GM_getValue === 'function' && typeof GM_setValue === 'function') {
+    return {
+      load() {
+        const raw = GM_getValue<string | undefined>(STORAGE_KEY, undefined)
+        if (!raw) {
+          return Promise.resolve(createEmptyStore())
+        }
+        try {
+          const parsed = JSON.parse(raw) as BookmarksStore
+          if (parsed?.data && parsed?.meta) {
+            return Promise.resolve(parsed)
+          }
+        } catch {
+          // 数据损坏时回退到空库。TODO: 损坏数据另存一份以便手动恢复
+        }
+        return Promise.resolve(createEmptyStore())
+      },
+      save(store) {
+        GM_setValue(STORAGE_KEY, JSON.stringify(store))
+        return Promise.resolve()
+      },
+    }
+  }
+
+  // 降级：管理器未提供 GM API（或控制台直接注入调试）时用 localStorage
   return {
     load() {
-      const raw = GM_getValue<string | undefined>(STORAGE_KEY, undefined)
+      const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) {
         return Promise.resolve(createEmptyStore())
       }
       try {
         const parsed = JSON.parse(raw) as BookmarksStore
-        // TODO(M1): 字段级校验与损坏数据的兜底
         if (parsed?.data && parsed?.meta) {
           return Promise.resolve(parsed)
         }
       } catch {
-        // 数据损坏时回退到空库。TODO(M1): 损坏数据另存一份以便手动恢复
+        // 忽略损坏数据，回退空库
       }
       return Promise.resolve(createEmptyStore())
     },
     save(store) {
-      GM_setValue(STORAGE_KEY, JSON.stringify(store))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
       return Promise.resolve()
     },
   }

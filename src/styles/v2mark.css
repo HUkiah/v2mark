@@ -1,15 +1,55 @@
-/* V2Mark 样式。特殊标签的过滤效果在这里用属性选择器实现。 */
+/* V2Mark 样式 */
 
-/* TODO(M1): 标签图标、标签行内展示、输入面板样式 */
+/* ---------- 行内标签 ---------- */
 
-/* 列表行容器上聚合了该行所有标签（data-v2mark-list="sb,block," 格式，
-   前后带逗号，便于 ,tag, 子串匹配）。实现见 core/dom。 */
+.v2mark-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.v2mark-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid #dde4ec;
+  border-radius: 3px;
+  background: #eef2f7;
+  color: #666;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* 悬停用户名或标签区域时出现的编辑图标 */
+.v2mark-captain {
+  display: none;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
+.content h1:hover + .v2mark-tags .v2mark-captain,
+.v2mark-tags:hover .v2mark-captain {
+  display: inline-block;
+}
+
+/* ---------- 特殊标签的列表级效果 ---------- */
+/* 列表行容器聚合了该行所有标签（data-v2mark-list=",tag1,tag2,"）。 */
 
 [data-v2mark-list*=",sb,"],
 [data-v2mark-list*=",标题党,"],
 [data-v2mark-list*=",推广,"],
 [data-v2mark-list*=",无聊,"],
-[data-v2mark-list*=",忽略,"] {
+[data-v2mark-list*=",忽略,"],
+[data-v2mark-list*=",ignore,"],
+[data-v2mark-list*=",clickbait,"] {
   opacity: 10%;
 }
 
@@ -23,4 +63,218 @@
 [data-v2mark-list*=",屏蔽,"],
 [data-v2mark-list*=",隐藏,"] {
   display: none;
+}
+
+/* ---------- 标签编辑面板 ---------- */
+
+.v2mark-panel {
+  position: absolute;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  max-width: 360px;
+  padding: 12px;
+  border: 1px solid #d5dbe3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+}
+
+.v2mark-panel-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.v2mark-panel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 22px;
+}
+
+.v2mark-panel-chips[data-empty='1']::after {
+  content: '还没有标签';
+  color: #999;
+  font-size: 12px;
+}
+
+.v2mark-tag-removable {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.v2mark-tag-x {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.v2mark-tag-x:hover {
+  color: #e2c3c3;
+}
+
+.v2mark-panel-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.v2mark-panel-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.v2mark-panel-quick-name {
+  color: #999;
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+.v2mark-quick-tag {
+  cursor: pointer;
+}
+
+.v2mark-quick-tag:hover {
+  border-color: #77808c;
+  color: #333;
+}
+
+.v2mark-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.v2mark-btn {
+  padding: 4px 12px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  background: #f7f9fb;
+  color: #444;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.v2mark-btn:hover {
+  background: #eef2f7;
+}
+
+.v2mark-btn-primary {
+  border-color: #7784a8;
+  background: #7784a8;
+  color: #fff;
+}
+
+.v2mark-btn-primary:hover {
+  background: #64718f;
+}
+
+.v2mark-btn-danger {
+  color: #b05252;
+}
+
+.v2mark-btn-sm {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+/* ---------- 管理面板 ---------- */
+
+.v2mark-manager {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.v2mark-manager-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(720px, 92vw);
+  max-height: 82vh;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+
+.v2mark-manager-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v2mark-manager-spacer {
+  flex: 1;
+}
+
+.v2mark-manager-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v2mark-manager-tools input[type='search'] {
+  flex: 1;
+  min-width: 180px;
+  padding: 5px 8px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.v2mark-manager-status {
+  color: #888;
+  font-size: 12px;
+}
+
+.v2mark-manager-list {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #e8ecf1;
+}
+
+.v2mark-manager-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid #f0f3f7;
+}
+
+.v2mark-manager-user {
+  flex: 0 0 auto;
+  min-width: 120px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #77808c;
+  font-weight: 600;
+}
+
+.v2mark-manager-tags {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #555;
 }
