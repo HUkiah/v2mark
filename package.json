@@ -1,0 +1,20 @@
+{
+  "name": "v2mark",
+  "version": "0.0.1",
+  "private": true,
+  "description": "V2Mark - V2EX 用户标签油猴脚本",
+  "repository": "https://github.com/HUkiah/v2mark",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,26 @@
+/* V2Mark 样式。特殊标签的过滤效果在这里用属性选择器实现。 */
+
+/* TODO(M1): 标签图标、标签行内展示、输入面板样式 */
+
+/* 列表行容器上聚合了该行所有标签（data-v2mark-list="sb,block," 格式，
+   前后带逗号，便于 ,tag, 子串匹配）。实现见 core/dom。 */
+
+[data-v2mark-list*=",sb,"],
+[data-v2mark-list*=",标题党,"],
+[data-v2mark-list*=",推广,"],
+[data-v2mark-list*=",无聊,"],
+[data-v2mark-list*=",忽略,"] {
+  opacity: 10%;
+}
+
+[data-v2mark-list*=",已阅,"],
+[data-v2mark-list*=",新用户,"] {
+  opacity: 50%;
+}
+
+[data-v2mark-list*=",block,"],
+[data-v2mark-list*=",hide,"],
+[data-v2mark-list*=",屏蔽,"],
+[data-v2mark-list*=",隐藏,"] {
+  display: none;
+}
