@@ -21,13 +21,31 @@ export const MOST_USED_LIMIT = 10
  */
 export class StoreService {
   private store: BookmarksStore = createEmptyStore()
+  private readonly listeners = new Set<() => void>()
 
   constructor(private readonly storage: Storage) {}
+
+  /** 注册本地数据变更回调（用于触发 debounce 自动同步）。返回取消函数。 */
+  onPersist(callback: () => void): () => void {
+    this.listeners.add(callback)
+    return () => {
+      this.listeners.delete(callback)
+    }
+  }
+
+  private async persist(notify = true): Promise<void> {
+    await this.storage.save(this.store)
+    if (notify) {
+      for (const callback of this.listeners) {
+        callback()
+      }
+    }
+  }
 
   async init(): Promise<void> {
     this.store = await this.storage.load()
     gcDeleted(this.store)
-    await this.storage.save(this.store)
+    await this.persist(false)
   }
 
   /** 未删除的条目 */
@@ -49,7 +67,7 @@ export class StoreService {
 
   async setPinnedTags(tags: string[]): Promise<void> {
     this.store.meta.pinned = tags
-    await this.storage.save(this.store)
+    await this.persist()
   }
 
   /** 标签使用频次，按次数降序 */
@@ -99,13 +117,13 @@ export class StoreService {
       }
       this.store.meta.updated = now
     }
-    await this.storage.save(this.store)
+    await this.persist()
     return entry
   }
 
   async deleteEntry(key: string): Promise<void> {
     softDelete(this.store, key)
-    await this.storage.save(this.store)
+    await this.persist()
   }
 
   /** 导入外部数据（自动识别 V2Mark 与 UTags 格式），与本地合并。返回导入的条目数。 */
@@ -132,8 +150,21 @@ export class StoreService {
     const imported = Object.keys(incoming.data).length
     this.store = mergeStores(this.store, incoming)
     gcDeleted(this.store)
-    await this.storage.save(this.store)
+    await this.persist()
     return imported
+  }
+
+  /**
+   * 同步流程专用：合并远端数据并落盘。
+   * 不触发变更回调，避免"同步引发保存、保存又触发同步"的循环。
+   */
+  mergeFrom(remote?: BookmarksStore): number {
+    if (remote) {
+      this.store = mergeStores(this.store, remote)
+    }
+    gcDeleted(this.store)
+    void this.persist(false)
+    return this.aliveEntries().length
   }
 
   /** V2Mark 原生格式导出（含置顶配置） */

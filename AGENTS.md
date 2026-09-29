@@ -48,6 +48,8 @@ npm run build      # 构建 dist/v2mark.user.js（不压缩，GreasyFork 规则�
 
 ## 当前状态
 
-v0.1.0（M1）已实现：标签渲染、编辑面板、管理面板、UTags 互通导入导出。31 个单测（vitest；DOM 集成测试用 happy-dom，文件头标注 `@vitest-environment happy-dom`）。
+v0.2.0（M2 WebDAV）已实现：标签渲染、编辑面板、管理面板、UTags 互通、WebDAV 同步（条目级合并、变更后 3 秒自动推送、PUT 409 自动建目录）。37 个单测（vitest；DOM 集成测试用 happy-dom，文件头标注 `@vitest-environment happy-dom`）。
 
-待办：真机验收三条（见 CONTRIBUTING.md）；M2 同步（WebDAV、Gist，条目级合并）。线上 v2ex.com 有 Cloudflare 挑战页，自动化浏览器进不去，DOM 验证一律走 happy-dom 集成测试。
+同步模块（core/sync.ts）的硬约束：凭据只经 readSetting/writeSetting 存本设备（key `v2mark.sync`），绝不放进 BookmarksStore（store 会被导出和同步）。同步引发的落盘走 `service.mergeFrom`（persist(false)），不触发变更回调，防止同步循环。
+
+待办：真机验收（见 CONTRIBUTING.md 三条）；Gist 通道、V2EX 记事本实验通道待定；M3 扩展版。线上 v2ex.com 有 Cloudflare 挑战页，自动化浏览器进不去，DOM 验证一律走 happy-dom 集成测试。

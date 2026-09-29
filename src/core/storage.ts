@@ -65,3 +65,30 @@ export function createGmStorage(): Storage {
     },
   }
 }
+
+/**
+ * 通用设置存取（同步配置等）。GM 优先，降级 localStorage。
+ * 注意：凭据类设置绝不放进 BookmarksStore，store 会被导出和同步。
+ */
+export function readSetting<T>(key: string, fallback: T): T {
+  if (typeof GM_getValue === 'function') {
+    return GM_getValue<T>(key, fallback)
+  }
+  const raw = localStorage.getItem(key)
+  if (raw === null) {
+    return fallback
+  }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
+export function writeSetting(key: string, value: unknown): void {
+  if (typeof GM_setValue === 'function') {
+    GM_setValue(key, value)
+    return
+  }
+  localStorage.setItem(key, JSON.stringify(value))
+}

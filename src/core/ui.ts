@@ -1,4 +1,11 @@
 import type { StoreService } from './store-service'
+import {
+  type WebDavConfig,
+  isConfigured,
+  loadSyncConfig,
+  saveSyncConfig,
+  syncNow,
+} from './sync'
 
 let activePanel: HTMLElement | undefined
 
@@ -229,6 +236,121 @@ export function openManager(
   const status = document.createElement('div')
   status.className = 'v2mark-manager-status'
 
+  // 同步设置区（WebDAV）
+  const syncBox = document.createElement('div')
+  syncBox.className = 'v2mark-manager-sync'
+  const syncTitle = document.createElement('strong')
+  syncTitle.textContent = '多设备同步（WebDAV）'
+  const syncHint = document.createElement('div')
+  syncHint.className = 'v2mark-manager-hint'
+  syncHint.textContent =
+    '坚果云：账户信息页开启密码选项生成应用密码，地址填 https://dav.jianguoyun.com/dav'
+
+  const syncConfig = loadSyncConfig()
+  const field = (
+    label: string,
+    key: keyof WebDavConfig,
+    type = 'text'
+  ): HTMLInputElement => {
+    const wrap = document.createElement('label')
+    wrap.className = 'v2mark-sync-field'
+    const span = document.createElement('span')
+    span.textContent = label
+    const input = document.createElement('input')
+    input.type = type
+    input.value = String(syncConfig[key] ?? '')
+    wrap.append(span, input)
+    syncBox.append(wrap)
+    return input
+  }
+  const urlInput = field('服务地址', 'url', 'url')
+  urlInput.placeholder = 'https://dav.jianguoyun.com/dav'
+  const pathInput = field('文件路径', 'path')
+  pathInput.placeholder = 'v2mark/bookmarks.json'
+  const userInput = field('用户名', 'username')
+  const passInput = field('密码', 'password', 'password')
+
+  const autoLabel = document.createElement('label')
+  autoLabel.className = 'v2mark-sync-field v2mark-sync-check'
+  const autoInput = document.createElement('input')
+  autoInput.type = 'checkbox'
+  autoInput.checked = syncConfig.autoSync
+  const autoSpan = document.createElement('span')
+  autoSpan.textContent = '本地变更后自动同步'
+  autoLabel.append(autoInput, autoSpan)
+
+  const syncStatus = document.createElement('span')
+  syncStatus.className = 'v2mark-manager-status'
+  const formatTime = (ts: number) =>
+    ts > 0
+      ? `上次同步：${new Date(ts).toLocaleString()}`
+      : '尚未同步'
+
+  const saveSyncBtn = document.createElement('button')
+  saveSyncBtn.type = 'button'
+  saveSyncBtn.className = 'v2mark-btn'
+  saveSyncBtn.textContent = '保存配置'
+  const syncBtn = document.createElement('button')
+  syncBtn.type = 'button'
+  syncBtn.className = 'v2mark-btn v2mark-btn-primary'
+  syncBtn.textContent = '立即同步'
+
+  const collectConfig = (): WebDavConfig => ({
+    url: urlInput.value.trim(),
+    path: pathInput.value.trim() || 'v2mark/bookmarks.json',
+    username: userInput.value.trim(),
+    password: passInput.value,
+    autoSync: autoInput.checked,
+    lastSyncAt: loadSyncConfig().lastSyncAt,
+  })
+
+  const refreshSyncStatus = () => {
+    const cfg = loadSyncConfig()
+    syncStatus.textContent = isConfigured(cfg)
+      ? formatTime(cfg.lastSyncAt)
+      : '未配置'
+    syncBtn.disabled = !isConfigured(cfg)
+  }
+
+  saveSyncBtn.addEventListener('click', () => {
+    const cfg = collectConfig()
+    if (cfg.url && !/^https?:\/\//.test(cfg.url)) {
+      syncStatus.textContent = '服务地址必须是 http(s) 开头'
+      return
+    }
+    saveSyncConfig(cfg)
+    refreshSyncStatus()
+    syncStatus.textContent = isConfigured(cfg)
+      ? '配置已保存'
+      : '已保存（信息不完整，暂不同步）'
+  })
+
+  syncBtn.addEventListener('click', async () => {
+    const cfg = collectConfig()
+    saveSyncConfig(cfg)
+    syncStatus.textContent = '同步中…'
+    syncBtn.disabled = true
+    try {
+      const result = await syncNow(service, cfg)
+      syncStatus.textContent = `已同步（远端 ${result.remoteCount} 条，本地 ${result.localCount} 条）`
+      refresh()
+      onChanged()
+    } catch (error) {
+      syncStatus.textContent = `同步失败：${
+        error instanceof Error ? error.message : error
+      }`
+    } finally {
+      syncBtn.disabled = false
+      refreshSyncStatus()
+    }
+  })
+
+  const syncActions = document.createElement('div')
+  syncActions.className = 'v2mark-manager-tools'
+  syncActions.append(saveSyncBtn, syncBtn, autoLabel, syncStatus)
+  syncBox.append(syncHint, syncActions)
+  refreshSyncStatus()
+
   // 列表
   const list = document.createElement('div')
   list.className = 'v2mark-manager-list'
@@ -349,7 +471,7 @@ export function openManager(
       })
   })
 
-  box.append(bar, tools, status, list)
+  box.append(bar, tools, syncBox, status, list)
   overlay.append(box)
   document.body.append(overlay)
   overlay.addEventListener('click', (event) => {

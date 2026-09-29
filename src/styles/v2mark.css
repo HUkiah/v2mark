@@ -278,3 +278,47 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
   white-space: nowrap;
   color: #555;
 }
+
+/* ---------- 同步设置 ---------- */
+
+.v2mark-manager-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  background: #fafbfd;
+}
+
+.v2mark-manager-hint {
+  color: #888;
+  font-size: 12px;
+}
+
+.v2mark-manager-sync .v2mark-sync-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.v2mark-manager-sync .v2mark-sync-field span {
+  flex: 0 0 56px;
+}
+
+.v2mark-manager-sync .v2mark-sync-field input[type='text'],
+.v2mark-manager-sync .v2mark-sync-field input[type='url'],
+.v2mark-manager-sync .v2mark-sync-field input[type='password'] {
+  flex: 0 0 240px;
+  padding: 4px 8px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.v2mark-sync-check {
+  white-space: nowrap;
+  color: #555;
+}

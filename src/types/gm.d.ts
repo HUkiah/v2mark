@@ -10,6 +10,18 @@ declare const GM_registerMenuCommand: (
 ) => number | string | void
 declare const GM_addStyle: (css: string) => HTMLStyleElement | void
 
+interface GMXmlHttpRequestDetails {
+  method: string
+  url: string
+  headers?: Record<string, string>
+  data?: string
+  timeout?: number
+  onload: (response: { status: number; responseText: string }) => void
+  onerror: (error: unknown) => void
+  ontimeout: () => void
+}
+declare const GM_xmlHttpRequest: (details: GMXmlHttpRequestDetails) => void
+
 declare module '*.css' {
   const cssText: string
   export default cssText

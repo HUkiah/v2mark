@@ -29,6 +29,15 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
+// @grant        GM_xmlHttpRequest
+// @connect      dav.jianguoyun.com
+// @connect      dav.dropdav.com
+// @connect      dav.box.com
+// @connect      app.koofr.net
+// @connect      webdav.pcloud.com
+// @connect      webdav.4shared.com
+// @connect      localhost
+// 说明：其他 WebDAV 域名首次请求时脚本管理器会弹确认，允许即可
 // @run-at       document-end
 // @noframes
 // @homepageURL  https://github.com/HUkiah/v2mark

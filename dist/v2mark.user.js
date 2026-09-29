@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.1.0
+// @version      0.2.0
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -14,6 +14,15 @@
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
+// @grant        GM_xmlHttpRequest
+// @connect      dav.jianguoyun.com
+// @connect      dav.dropdav.com
+// @connect      dav.box.com
+// @connect      app.koofr.net
+// @connect      webdav.pcloud.com
+// @connect      webdav.4shared.com
+// @connect      localhost
+// 说明：其他 WebDAV 域名首次请求时脚本管理器会弹确认，允许即可
 // @run-at       document-end
 // @noframes
 // @homepageURL  https://github.com/HUkiah/v2mark
@@ -301,6 +310,50 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #555;
+}
+
+/* ---------- \u540C\u6B65\u8BBE\u7F6E ---------- */
+
+.v2mark-manager-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  background: #fafbfd;
+}
+
+.v2mark-manager-hint {
+  color: #888;
+  font-size: 12px;
+}
+
+.v2mark-manager-sync .v2mark-sync-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.v2mark-manager-sync .v2mark-sync-field span {
+  flex: 0 0 56px;
+}
+
+.v2mark-manager-sync .v2mark-sync-field input[type='text'],
+.v2mark-manager-sync .v2mark-sync-field input[type='url'],
+.v2mark-manager-sync .v2mark-sync-field input[type='password'] {
+  flex: 0 0 240px;
+  padding: 4px 8px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.v2mark-sync-check {
   white-space: nowrap;
   color: #555;
 }
@@ -594,6 +647,27 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
       }
     };
   }
+  function readSetting(key, fallback) {
+    if (typeof GM_getValue === "function") {
+      return GM_getValue(key, fallback);
+    }
+    const raw = localStorage.getItem(key);
+    if (raw === null) {
+      return fallback;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  }
+  function writeSetting(key, value) {
+    if (typeof GM_setValue === "function") {
+      GM_setValue(key, value);
+      return;
+    }
+    localStorage.setItem(key, JSON.stringify(value));
+  }
 
   // src/core/store-service.ts
   var DEFAULT_PINNED = ["block", "sb", "\u5927\u4F6C", "\u6709\u8DA3"];
@@ -604,10 +678,26 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
     }
     storage;
     store = createEmptyStore();
+    listeners = /* @__PURE__ */ new Set();
+    /** 注册本地数据变更回调（用于触发 debounce 自动同步）。返回取消函数。 */
+    onPersist(callback) {
+      this.listeners.add(callback);
+      return () => {
+        this.listeners.delete(callback);
+      };
+    }
+    async persist(notify = true) {
+      await this.storage.save(this.store);
+      if (notify) {
+        for (const callback of this.listeners) {
+          callback();
+        }
+      }
+    }
     async init() {
       this.store = await this.storage.load();
       gcDeleted(this.store);
-      await this.storage.save(this.store);
+      await this.persist(false);
     }
     /** 未删除的条目 */
     aliveEntries() {
@@ -625,7 +715,7 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
     }
     async setPinnedTags(tags) {
       this.store.meta.pinned = tags;
-      await this.storage.save(this.store);
+      await this.persist();
     }
     /** 标签使用频次，按次数降序 */
     tagCounts() {
@@ -666,12 +756,12 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
         }
         this.store.meta.updated = now;
       }
-      await this.storage.save(this.store);
+      await this.persist();
       return entry;
     }
     async deleteEntry(key) {
       deleteEntry(this.store, key);
-      await this.storage.save(this.store);
+      await this.persist();
     }
     /** 导入外部数据（自动识别 V2Mark 与 UTags 格式），与本地合并。返回导入的条目数。 */
     async importJson(json) {
@@ -694,8 +784,20 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
       const imported = Object.keys(incoming.data).length;
       this.store = mergeStores(this.store, incoming);
       gcDeleted(this.store);
-      await this.storage.save(this.store);
+      await this.persist();
       return imported;
+    }
+    /**
+     * 同步流程专用：合并远端数据并落盘。
+     * 不触发变更回调，避免"同步引发保存、保存又触发同步"的循环。
+     */
+    mergeFrom(remote) {
+      if (remote) {
+        this.store = mergeStores(this.store, remote);
+      }
+      gcDeleted(this.store);
+      void this.persist(false);
+      return this.aliveEntries().length;
     }
     /** V2Mark 原生格式导出（含置顶配置） */
     exportJson() {
@@ -706,6 +808,109 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
       return toUtagsExport(this.store);
     }
   };
+
+  // src/core/sync.ts
+  var SYNC_CONFIG_KEY = "v2mark.sync";
+  var EMPTY_CONFIG = {
+    url: "",
+    path: "v2mark/bookmarks.json",
+    username: "",
+    password: "",
+    autoSync: true,
+    lastSyncAt: 0
+  };
+  function loadSyncConfig() {
+    return { ...EMPTY_CONFIG, ...readSetting(SYNC_CONFIG_KEY, {}) };
+  }
+  function saveSyncConfig(config) {
+    writeSetting(SYNC_CONFIG_KEY, config);
+  }
+  function isConfigured(config) {
+    return Boolean(
+      config.url && config.path && config.username && config.password && /^https?:\/\//.test(config.url)
+    );
+  }
+  function davRequest(method, url, config, data) {
+    return new Promise((resolve, reject) => {
+      if (typeof GM_xmlHttpRequest !== "function") {
+        reject(new Error("\u5F53\u524D\u811A\u672C\u7BA1\u7406\u5668\u4E0D\u652F\u6301\u8DE8\u57DF\u8BF7\u6C42\uFF08GM_xmlHttpRequest\uFF09"));
+        return;
+      }
+      GM_xmlHttpRequest({
+        method,
+        url,
+        headers: {
+          Authorization: `Basic ${btoa(
+            `${config.username}:${config.password}`
+          )}`,
+          ...data !== void 0 ? { "Content-Type": "application/json" } : {}
+        },
+        data,
+        timeout: 15e3,
+        onload: (response) => {
+          resolve({ status: response.status, text: response.responseText });
+        },
+        onerror: () => {
+          reject(new Error(`\u7F51\u7EDC\u9519\u8BEF\uFF1A${method} ${url}`));
+        },
+        ontimeout: () => {
+          reject(new Error(`\u8BF7\u6C42\u8D85\u65F6\uFF1A${method} ${url}`));
+        }
+      });
+    });
+  }
+  function joinUrl(base, path) {
+    return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  }
+  async function ensureParentDirs(config) {
+    const segments = config.path.replace(/^\/+/, "").split("/").slice(0, -1);
+    let current = config.url.replace(/\/+$/, "");
+    for (const segment of segments) {
+      current += `/${segment}`;
+      try {
+        await davRequest("MKCOL", current, config);
+      } catch {
+      }
+    }
+  }
+  function isValidStore(value) {
+    const obj = value;
+    return Boolean(obj?.meta && obj?.data && typeof obj.data === "object");
+  }
+  async function syncNow(service, config) {
+    const fullUrl = joinUrl(config.url, config.path);
+    const get = await davRequest("GET", fullUrl, config);
+    let remote;
+    if (get.status === 200) {
+      try {
+        const parsed = JSON.parse(get.text);
+        if (isValidStore(parsed)) {
+          remote = parsed;
+        } else {
+          throw new Error("\u8FDC\u7AEF\u6587\u4EF6\u4E0D\u662F\u6709\u6548\u7684 V2Mark \u6570\u636E");
+        }
+      } catch (error) {
+        throw new Error(
+          `\u8FDC\u7AEF\u6570\u636E\u89E3\u6790\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`
+        );
+      }
+    } else if (get.status !== 404) {
+      throw new Error(`\u8FDC\u7AEF\u8FD4\u56DE HTTP ${get.status}`);
+    }
+    const localCount = service.mergeFrom(remote);
+    const remoteCount = remote ? Object.keys(remote.data).length : 0;
+    let put = await davRequest("PUT", fullUrl, config, service.exportJson());
+    if (put.status === 409) {
+      await ensureParentDirs(config);
+      put = await davRequest("PUT", fullUrl, config, service.exportJson());
+    }
+    if (put.status < 200 || put.status >= 300) {
+      throw new Error(`\u63A8\u9001\u5931\u8D25\uFF0CHTTP ${put.status}`);
+    }
+    const done = { ...config, lastSyncAt: Date.now() };
+    saveSyncConfig(done);
+    return { remoteCount, localCount };
+  }
 
   // src/core/ui.ts
   var activePanel;
@@ -898,6 +1103,96 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
     tools.append(search, importBtn, exportBtn, exportUtagsBtn);
     const status = document.createElement("div");
     status.className = "v2mark-manager-status";
+    const syncBox = document.createElement("div");
+    syncBox.className = "v2mark-manager-sync";
+    const syncTitle = document.createElement("strong");
+    syncTitle.textContent = "\u591A\u8BBE\u5907\u540C\u6B65\uFF08WebDAV\uFF09";
+    const syncHint = document.createElement("div");
+    syncHint.className = "v2mark-manager-hint";
+    syncHint.textContent = "\u575A\u679C\u4E91\uFF1A\u8D26\u6237\u4FE1\u606F\u9875\u5F00\u542F\u5BC6\u7801\u9009\u9879\u751F\u6210\u5E94\u7528\u5BC6\u7801\uFF0C\u5730\u5740\u586B https://dav.jianguoyun.com/dav";
+    const syncConfig = loadSyncConfig();
+    const field = (label, key, type = "text") => {
+      const wrap = document.createElement("label");
+      wrap.className = "v2mark-sync-field";
+      const span = document.createElement("span");
+      span.textContent = label;
+      const input = document.createElement("input");
+      input.type = type;
+      input.value = String(syncConfig[key] ?? "");
+      wrap.append(span, input);
+      syncBox.append(wrap);
+      return input;
+    };
+    const urlInput = field("\u670D\u52A1\u5730\u5740", "url", "url");
+    urlInput.placeholder = "https://dav.jianguoyun.com/dav";
+    const pathInput = field("\u6587\u4EF6\u8DEF\u5F84", "path");
+    pathInput.placeholder = "v2mark/bookmarks.json";
+    const userInput = field("\u7528\u6237\u540D", "username");
+    const passInput = field("\u5BC6\u7801", "password", "password");
+    const autoLabel = document.createElement("label");
+    autoLabel.className = "v2mark-sync-field v2mark-sync-check";
+    const autoInput = document.createElement("input");
+    autoInput.type = "checkbox";
+    autoInput.checked = syncConfig.autoSync;
+    const autoSpan = document.createElement("span");
+    autoSpan.textContent = "\u672C\u5730\u53D8\u66F4\u540E\u81EA\u52A8\u540C\u6B65";
+    autoLabel.append(autoInput, autoSpan);
+    const syncStatus = document.createElement("span");
+    syncStatus.className = "v2mark-manager-status";
+    const formatTime = (ts) => ts > 0 ? `\u4E0A\u6B21\u540C\u6B65\uFF1A${new Date(ts).toLocaleString()}` : "\u5C1A\u672A\u540C\u6B65";
+    const saveSyncBtn = document.createElement("button");
+    saveSyncBtn.type = "button";
+    saveSyncBtn.className = "v2mark-btn";
+    saveSyncBtn.textContent = "\u4FDD\u5B58\u914D\u7F6E";
+    const syncBtn = document.createElement("button");
+    syncBtn.type = "button";
+    syncBtn.className = "v2mark-btn v2mark-btn-primary";
+    syncBtn.textContent = "\u7ACB\u5373\u540C\u6B65";
+    const collectConfig = () => ({
+      url: urlInput.value.trim(),
+      path: pathInput.value.trim() || "v2mark/bookmarks.json",
+      username: userInput.value.trim(),
+      password: passInput.value,
+      autoSync: autoInput.checked,
+      lastSyncAt: loadSyncConfig().lastSyncAt
+    });
+    const refreshSyncStatus = () => {
+      const cfg = loadSyncConfig();
+      syncStatus.textContent = isConfigured(cfg) ? formatTime(cfg.lastSyncAt) : "\u672A\u914D\u7F6E";
+      syncBtn.disabled = !isConfigured(cfg);
+    };
+    saveSyncBtn.addEventListener("click", () => {
+      const cfg = collectConfig();
+      if (cfg.url && !/^https?:\/\//.test(cfg.url)) {
+        syncStatus.textContent = "\u670D\u52A1\u5730\u5740\u5FC5\u987B\u662F http(s) \u5F00\u5934";
+        return;
+      }
+      saveSyncConfig(cfg);
+      refreshSyncStatus();
+      syncStatus.textContent = isConfigured(cfg) ? "\u914D\u7F6E\u5DF2\u4FDD\u5B58" : "\u5DF2\u4FDD\u5B58\uFF08\u4FE1\u606F\u4E0D\u5B8C\u6574\uFF0C\u6682\u4E0D\u540C\u6B65\uFF09";
+    });
+    syncBtn.addEventListener("click", async () => {
+      const cfg = collectConfig();
+      saveSyncConfig(cfg);
+      syncStatus.textContent = "\u540C\u6B65\u4E2D\u2026";
+      syncBtn.disabled = true;
+      try {
+        const result = await syncNow(service, cfg);
+        syncStatus.textContent = `\u5DF2\u540C\u6B65\uFF08\u8FDC\u7AEF ${result.remoteCount} \u6761\uFF0C\u672C\u5730 ${result.localCount} \u6761\uFF09`;
+        refresh();
+        onChanged();
+      } catch (error) {
+        syncStatus.textContent = `\u540C\u6B65\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`;
+      } finally {
+        syncBtn.disabled = false;
+        refreshSyncStatus();
+      }
+    });
+    const syncActions = document.createElement("div");
+    syncActions.className = "v2mark-manager-tools";
+    syncActions.append(saveSyncBtn, syncBtn, autoLabel, syncStatus);
+    syncBox.append(syncHint, syncActions);
+    refreshSyncStatus();
     const list = document.createElement("div");
     list.className = "v2mark-manager-list";
     const download = (filename, text) => {
@@ -993,7 +1288,7 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
         window.alert(`\u5BFC\u5165\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`);
       });
     });
-    box.append(bar, tools, status, list);
+    box.append(bar, tools, syncBox, status, list);
     overlay.append(box);
     document.body.append(overlay);
     overlay.addEventListener("click", (event) => {
@@ -1015,8 +1310,9 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
     style.textContent = css;
     document.head.append(style);
   }
+  var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.1.0"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.0"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {
@@ -1024,8 +1320,35 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
         openTagPanel(key, anchor, name, service, renderAll);
       });
     };
+    const runSync = async (silent) => {
+      const config = loadSyncConfig();
+      if (!isConfigured(config)) {
+        return;
+      }
+      try {
+        await syncNow(service, config);
+        renderAll();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!silent) {
+          console.warn("[V2Mark] \u540C\u6B65\u5931\u8D25\uFF1A", message);
+        }
+      }
+    };
+    let syncTimer;
+    service.onPersist(() => {
+      const config = loadSyncConfig();
+      if (!config.autoSync) {
+        return;
+      }
+      window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => {
+        void runSync(true);
+      }, AUTO_SYNC_DEBOUNCE_MS);
+    });
     renderAll();
     observeMutations(renderAll);
+    void runSync(true);
     if (typeof GM_registerMenuCommand === "function") {
       GM_registerMenuCommand("\u{1F3F7}\uFE0F \u6807\u7B7E\u7BA1\u7406\u9762\u677F", () => {
         openManager(service, renderAll);
