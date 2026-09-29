@@ -4,3 +4,10 @@ node_modules/
 .vscode/
 .idea/
 .env*
+
+# 密钥与凭据类文件，任何情况下不提交
+*.pem
+*.key
+!dist/*.user.js
+credentials*
+secrets*

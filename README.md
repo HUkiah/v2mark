@@ -1,5 +1,8 @@
 # V2Mark
 
+[![CI](https://github.com/HUkiah/v2mark/actions/workflows/ci.yml/badge.svg)](https://github.com/HUkiah/v2mark/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 给 V2EX 的网友做记号。油猴脚本，单站、轻量、数据自主。
 
 在 V2EX 的帖子列表、回复页、个人主页给用户挂自由文本标签。数据保存在本地，可导出导入，格式兼容 [UTags](https://github.com/utags/utags)（小鱼标签）。
@@ -34,9 +37,16 @@ npm install
 npm run dev        # watch 模式，改 src/ 自动构建到 dist/
 npm run build      # 构建到 dist/v2mark.user.js
 npm run typecheck  # 类型检查
+npm test           # 单元测试
 ```
 
 构建产物不压缩（GreasyFork 规则禁止压缩混淆）。dist/ 直接提交到仓库，供 raw 链接安装。
+
+仓库即全部开发环境：任何设备上 clone 后 `npm install` 就能继续开发。构建命令、目录说明和范围约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，给 AI 编码工具的项目说明见 [AGENTS.md](AGENTS.md)。
+
+## 参与贡献
+
+欢迎 issue 和 PR。参与前读 [CONTRIBUTING.md](CONTRIBUTING.md)：开发环境、测试要求、提交规范和安全红线（不提交密钥与真实用户数据）。
 
 ## 目录结构
 
