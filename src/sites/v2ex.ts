@@ -17,11 +17,13 @@ export function memberKey(name: string): string {
   return `https://www.v2ex.com/member/${name}`
 }
 
-/** 从 member 链接提取用户名，失败返回 undefined */
+/**
+ * 从 member 链接提取用户名，失败返回 undefined。
+ * 入参传 element.href（绝对地址）；相对地址也能匹配，
+ * 调用方已用 MEMBER_LINK_SELECTOR 限定在 v2ex 页面的 member 链接上。
+ */
 export function memberNameFromHref(href: string): string | undefined {
-  const match = /(?:https?:\/\/)?(?:www\.)?v2ex\.com\/member\/([^/?#]+)/i.exec(
-    href
-  )
+  const match = /\/member\/([^/?#]+)/.exec(href)
   return match?.[1]
 }
 
