@@ -37,8 +37,8 @@ async function main(): Promise<void> {
     })
   }
 
-  // 同步：启动时拉取合并；本地变更后 debounce 静默推送
-  const runSync = async (silent: boolean) => {
+  // 同步：启动时拉取合并；本地变更后 debounce 推送。失败只记控制台，不打扰浏览
+  const runSync = async () => {
     const config = loadSyncConfig()
     if (!isConfigured(config)) {
       return
@@ -48,9 +48,7 @@ async function main(): Promise<void> {
       renderAll()
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      if (!silent) {
-        console.warn('[V2Mark] 同步失败：', message)
-      }
+      console.warn('[V2Mark] 同步失败：', message)
     }
   }
 
@@ -62,13 +60,13 @@ async function main(): Promise<void> {
     }
     window.clearTimeout(syncTimer)
     syncTimer = window.setTimeout(() => {
-      void runSync(true)
+      void runSync()
     }, AUTO_SYNC_DEBOUNCE_MS)
   })
 
   renderAll()
   observeMutations(renderAll)
-  void runSync(true)
+  void runSync()
 
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('🏷️ 标签管理面板', () => {

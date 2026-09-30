@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.3
+// @version      0.2.4
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -950,7 +950,7 @@
           `\u8FDC\u7AEF\u6570\u636E\u89E3\u6790\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`
         );
       }
-    } else if (get.status !== 404) {
+    } else if (get.status !== 404 && get.status !== 409) {
       throw new Error(`\u8FDC\u7AEF\u8FD4\u56DE HTTP ${get.status}`);
     }
     const localCount = service.mergeFrom(remote);
@@ -1238,10 +1238,11 @@
         refresh();
         onChanged();
       } catch (error) {
-        syncStatus.textContent = `\u540C\u6B65\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`;
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn("[V2Mark] \u540C\u6B65\u5931\u8D25\uFF1A", message);
+        syncStatus.textContent = `\u540C\u6B65\u5931\u8D25\uFF1A${message}`;
       } finally {
         syncBtn.disabled = false;
-        refreshSyncStatus();
       }
     });
     const syncActions = document.createElement("div");
@@ -1426,7 +1427,7 @@
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.3"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.4"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {
@@ -1434,7 +1435,7 @@
         openTagPanel(key, anchor, name, service, renderAll);
       });
     };
-    const runSync = async (silent) => {
+    const runSync = async () => {
       const config = loadSyncConfig();
       if (!isConfigured(config)) {
         return;
@@ -1444,9 +1445,7 @@
         renderAll();
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (!silent) {
-          console.warn("[V2Mark] \u540C\u6B65\u5931\u8D25\uFF1A", message);
-        }
+        console.warn("[V2Mark] \u540C\u6B65\u5931\u8D25\uFF1A", message);
       }
     };
     let syncTimer;
@@ -1457,12 +1456,12 @@
       }
       window.clearTimeout(syncTimer);
       syncTimer = window.setTimeout(() => {
-        void runSync(true);
+        void runSync();
       }, AUTO_SYNC_DEBOUNCE_MS);
     });
     renderAll();
     observeMutations(renderAll);
-    void runSync(true);
+    void runSync();
     if (typeof GM_registerMenuCommand === "function") {
       GM_registerMenuCommand("\u{1F3F7}\uFE0F \u6807\u7B7E\u7BA1\u7406\u9762\u677F", () => {
         openManager(service, renderAll);

@@ -336,12 +336,12 @@ export function openManager(
       refresh()
       onChanged()
     } catch (error) {
-      syncStatus.textContent = `同步失败：${
-        error instanceof Error ? error.message : error
-      }`
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn('[V2Mark] 同步失败：', message)
+      // 错误信息必须留在界面上，不要在这里刷新状态行覆盖它
+      syncStatus.textContent = `同步失败：${message}`
     } finally {
       syncBtn.disabled = false
-      refreshSyncStatus()
     }
   })
 

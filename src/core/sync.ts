@@ -142,7 +142,9 @@ export async function syncNow(
         `远端数据解析失败：${error instanceof Error ? error.message : error}`
       )
     }
-  } else if (get.status !== 404) {
+  } else if (get.status !== 404 && get.status !== 409) {
+    // 404：文件不存在。409：父目录不存在——坚果云对这种情况返回 409
+    // 而非标准 WebDAV 的 404。两种都视为远端尚无数据，继续推送。
     throw new Error(`远端返回 HTTP ${get.status}`)
   }
 

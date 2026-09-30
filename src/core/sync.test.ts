@@ -144,6 +144,18 @@ describe('syncNow', () => {
     expect(pushed.data['https://www.v2ex.com/member/alice']).toBeTruthy()
   })
 
+  it('远端 GET 返回 409（坚果云：父目录不存在）视作远端无数据，正常推送', async () => {
+    const { service } = await makeService({ alice: ['大佬'] })
+    const requests = stubDav([
+      () => ({ status: 409, text: '' }),
+      () => ({ status: 201, text: '' }),
+    ])
+    const result = await syncNow(service, makeConfig())
+    expect(result.remoteCount).toBe(0)
+    expect(result.localCount).toBe(1)
+    expect(requests[1]?.method).toBe('PUT')
+  })
+
   it('远端数据损坏时报错', async () => {
     const { service } = await makeService({})
     stubDav([() => ({ status: 200, text: '{broken' })])
