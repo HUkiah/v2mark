@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.5
+// @version      0.2.6
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -15,6 +15,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_xmlHttpRequest
+// @grant        GM_info
 // @connect      dav.jianguoyun.com
 // @connect      dav.dropdav.com
 // @connect      dav.box.com
@@ -887,11 +888,19 @@
     );
   }
   function resolveXhr() {
+    const g = globalThis;
     if (typeof GM_xmlHttpRequest === "function") {
       return GM_xmlHttpRequest;
     }
+    if (typeof g.GM_xmlHttpRequest === "function") {
+      return g.GM_xmlHttpRequest;
+    }
     if (typeof GM !== "undefined" && GM && typeof GM.xmlHttpRequest === "function") {
       return GM.xmlHttpRequest;
+    }
+    const gmObj = g.GM;
+    if (gmObj && typeof gmObj.xmlHttpRequest === "function") {
+      return gmObj.xmlHttpRequest;
     }
     return void 0;
   }
@@ -899,9 +908,10 @@
     return new Promise((resolve, reject) => {
       const xhr = resolveXhr();
       if (!xhr) {
+        const handler = typeof GM_info !== "undefined" && GM_info?.scriptHandler ? `${GM_info.scriptHandler} ${GM_info.version ?? ""}` : "\u672A\u77E5\u7BA1\u7406\u5668";
         reject(
           new Error(
-            "\u5F53\u524D\u811A\u672C\u7BA1\u7406\u5668\u672A\u63D0\u4F9B\u8DE8\u57DF\u8BF7\u6C42\u63A5\u53E3\uFF08GM_xmlHttpRequest / GM.xmlHttpRequest\uFF09"
+            `\u5F53\u524D\u811A\u672C\u7BA1\u7406\u5668\u672A\u63D0\u4F9B\u8DE8\u57DF\u8BF7\u6C42\u63A5\u53E3\uFF08${handler}\uFF0C\u8BE6\u89C1\u83DC\u5355\u300C\u590D\u5236\u8BCA\u65AD\u4FE1\u606F\u300D\uFF09`
           )
         );
         return;
@@ -1441,7 +1451,7 @@
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.5"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.6"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {
@@ -1479,6 +1489,41 @@
     if (typeof GM_registerMenuCommand === "function") {
       GM_registerMenuCommand("\u{1F3F7}\uFE0F \u6807\u7B7E\u7BA1\u7406\u9762\u677F", () => {
         openManager(service, renderAll);
+      });
+      GM_registerMenuCommand("\u{1F4CB} \u590D\u5236\u8BCA\u65AD\u4FE1\u606F", () => {
+        const g = globalThis;
+        const probe = (name) => {
+          try {
+            return typeof g[name];
+          } catch {
+            return "throws";
+          }
+        };
+        const info = typeof GM_info !== "undefined" && GM_info ? {
+          handler: GM_info.scriptHandler,
+          managerVersion: GM_info.version,
+          scriptVersion: GM_info.script?.version
+        } : null;
+        const diag = {
+          time: (/* @__PURE__ */ new Date()).toISOString(),
+          ua: navigator.userAgent,
+          manager: info,
+          apis: {
+            GM_setValue: probe("GM_setValue"),
+            GM_getValue: probe("GM_getValue"),
+            GM_registerMenuCommand: probe("GM_registerMenuCommand"),
+            GM_xmlHttpRequest: probe("GM_xmlHttpRequest"),
+            GM: probe("GM"),
+            GM_info: probe("GM_info"),
+            unsafeWindow: probe("unsafeWindow")
+          },
+          syncConfigured: isConfigured(loadSyncConfig())
+        };
+        const text = JSON.stringify(diag);
+        console.log("[V2Mark] \u8BCA\u65AD\u4FE1\u606F\uFF1A", text);
+        void navigator.clipboard?.writeText(text).then(() => console.log("[V2Mark] \u8BCA\u65AD\u4FE1\u606F\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F")).catch(() => {
+          window.prompt("\u590D\u5236\u4E0B\u9762\u7684\u8BCA\u65AD\u4FE1\u606F\uFF1A", text);
+        });
       });
     }
   }

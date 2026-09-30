@@ -54,23 +54,31 @@ export interface DavResponse {
  * Tampermonkey、Violentmonkey 桌面版提供老式 GM_xmlHttpRequest；
  * Stay、Userscripts（iOS/macOS）等只提供新式 GM.xmlHttpRequest。
  */
-function resolveXhr():
-  | ((details: {
-      method: string
-      url: string
-      headers?: Record<string, string>
-      data?: string
-      timeout?: number
-      onload: (response: { status: number; responseText: string }) => void
-      onerror: (error: unknown) => void
-      ontimeout: () => void
-    }) => void)
-  | undefined {
+type XhrFn = (details: {
+  method: string
+  url: string
+  headers?: Record<string, string>
+  data?: string
+  timeout?: number
+  onload: (response: { status: number; responseText: string }) => void
+  onerror: (error: unknown) => void
+  ontimeout: () => void
+}) => void
+
+function resolveXhr(): XhrFn | undefined {
+  const g = globalThis as Record<string, unknown>
   if (typeof GM_xmlHttpRequest === 'function') {
     return GM_xmlHttpRequest
   }
+  if (typeof g.GM_xmlHttpRequest === 'function') {
+    return g.GM_xmlHttpRequest as XhrFn
+  }
   if (typeof GM !== 'undefined' && GM && typeof GM.xmlHttpRequest === 'function') {
     return GM.xmlHttpRequest
+  }
+  const gmObj = g.GM as { xmlHttpRequest?: unknown } | undefined
+  if (gmObj && typeof gmObj.xmlHttpRequest === 'function') {
+    return gmObj.xmlHttpRequest as XhrFn
   }
   return undefined
 }
@@ -85,9 +93,13 @@ export function davRequest(
   return new Promise((resolve, reject) => {
     const xhr = resolveXhr()
     if (!xhr) {
+      const handler =
+        typeof GM_info !== 'undefined' && GM_info?.scriptHandler
+          ? `${GM_info.scriptHandler} ${GM_info.version ?? ''}`
+          : '未知管理器'
       reject(
         new Error(
-          '当前脚本管理器未提供跨域请求接口（GM_xmlHttpRequest / GM.xmlHttpRequest）'
+          `当前脚本管理器未提供跨域请求接口（${handler}，详见菜单「复制诊断信息」）`
         )
       )
       return

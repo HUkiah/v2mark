@@ -27,6 +27,13 @@ declare const GM: {
   xmlHttpRequest: (details: GMXmlHttpRequestDetails) => void
 } | undefined
 
+interface GMInfoType {
+  version?: string
+  scriptHandler?: string
+  script?: { version?: string }
+}
+declare const GM_info: GMInfoType | undefined
+
 declare module '*.css' {
   const cssText: string
   export default cssText

@@ -72,6 +72,47 @@ async function main(): Promise<void> {
     GM_registerMenuCommand('🏷️ 标签管理面板', () => {
       openManager(service, renderAll)
     })
+    GM_registerMenuCommand('📋 复制诊断信息', () => {
+      const g = globalThis as Record<string, unknown>
+      const probe = (name: string): string => {
+        try {
+          return typeof g[name]
+        } catch {
+          return 'throws'
+        }
+      }
+      const info =
+        typeof GM_info !== 'undefined' && GM_info
+          ? {
+              handler: GM_info.scriptHandler,
+              managerVersion: GM_info.version,
+              scriptVersion: GM_info.script?.version,
+            }
+          : null
+      const diag = {
+        time: new Date().toISOString(),
+        ua: navigator.userAgent,
+        manager: info,
+        apis: {
+          GM_setValue: probe('GM_setValue'),
+          GM_getValue: probe('GM_getValue'),
+          GM_registerMenuCommand: probe('GM_registerMenuCommand'),
+          GM_xmlHttpRequest: probe('GM_xmlHttpRequest'),
+          GM: probe('GM'),
+          GM_info: probe('GM_info'),
+          unsafeWindow: probe('unsafeWindow'),
+        },
+        syncConfigured: isConfigured(loadSyncConfig()),
+      }
+      const text = JSON.stringify(diag)
+      console.log('[V2Mark] 诊断信息：', text)
+      void navigator.clipboard
+        ?.writeText(text)
+        .then(() => console.log('[V2Mark] 诊断信息已复制到剪贴板'))
+        .catch(() => {
+          window.prompt('复制下面的诊断信息：', text)
+        })
+    })
   }
 }
 
