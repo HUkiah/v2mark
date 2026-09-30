@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.4
+// @version      0.2.5
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -886,13 +886,27 @@
       config.url && config.path && config.username && config.password && /^https?:\/\//.test(config.url)
     );
   }
+  function resolveXhr() {
+    if (typeof GM_xmlHttpRequest === "function") {
+      return GM_xmlHttpRequest;
+    }
+    if (typeof GM !== "undefined" && GM && typeof GM.xmlHttpRequest === "function") {
+      return GM.xmlHttpRequest;
+    }
+    return void 0;
+  }
   function davRequest(method, url, config, data) {
     return new Promise((resolve, reject) => {
-      if (typeof GM_xmlHttpRequest !== "function") {
-        reject(new Error("\u5F53\u524D\u811A\u672C\u7BA1\u7406\u5668\u4E0D\u652F\u6301\u8DE8\u57DF\u8BF7\u6C42\uFF08GM_xmlHttpRequest\uFF09"));
+      const xhr = resolveXhr();
+      if (!xhr) {
+        reject(
+          new Error(
+            "\u5F53\u524D\u811A\u672C\u7BA1\u7406\u5668\u672A\u63D0\u4F9B\u8DE8\u57DF\u8BF7\u6C42\u63A5\u53E3\uFF08GM_xmlHttpRequest / GM.xmlHttpRequest\uFF09"
+          )
+        );
         return;
       }
-      GM_xmlHttpRequest({
+      xhr({
         method,
         url,
         headers: {
@@ -1427,7 +1441,7 @@
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.4"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.5"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {

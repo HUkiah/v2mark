@@ -49,7 +49,33 @@ export interface DavResponse {
   text: string
 }
 
-/** 发起一次 WebDAV 请求（GM_xmlHttpRequest，跨域授权由 @connect 与用户确认承担） */
+/**
+ * 解析当前管理器的跨域请求函数。
+ * Tampermonkey、Violentmonkey 桌面版提供老式 GM_xmlHttpRequest；
+ * Stay、Userscripts（iOS/macOS）等只提供新式 GM.xmlHttpRequest。
+ */
+function resolveXhr():
+  | ((details: {
+      method: string
+      url: string
+      headers?: Record<string, string>
+      data?: string
+      timeout?: number
+      onload: (response: { status: number; responseText: string }) => void
+      onerror: (error: unknown) => void
+      ontimeout: () => void
+    }) => void)
+  | undefined {
+  if (typeof GM_xmlHttpRequest === 'function') {
+    return GM_xmlHttpRequest
+  }
+  if (typeof GM !== 'undefined' && GM && typeof GM.xmlHttpRequest === 'function') {
+    return GM.xmlHttpRequest
+  }
+  return undefined
+}
+
+/** 发起一次 WebDAV 请求（跨域授权由 @connect 与用户确认承担） */
 export function davRequest(
   method: string,
   url: string,
@@ -57,11 +83,16 @@ export function davRequest(
   data?: string
 ): Promise<DavResponse> {
   return new Promise((resolve, reject) => {
-    if (typeof GM_xmlHttpRequest !== 'function') {
-      reject(new Error('当前脚本管理器不支持跨域请求（GM_xmlHttpRequest）'))
+    const xhr = resolveXhr()
+    if (!xhr) {
+      reject(
+        new Error(
+          '当前脚本管理器未提供跨域请求接口（GM_xmlHttpRequest / GM.xmlHttpRequest）'
+        )
+      )
       return
     }
-    GM_xmlHttpRequest({
+    xhr({
       method,
       url,
       headers: {

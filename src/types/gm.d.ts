@@ -22,6 +22,11 @@ interface GMXmlHttpRequestDetails {
 }
 declare const GM_xmlHttpRequest: (details: GMXmlHttpRequestDetails) => void
 
+/** 新式异步接口（Stay、Userscripts、部分管理器只提供这一种形态） */
+declare const GM: {
+  xmlHttpRequest: (details: GMXmlHttpRequestDetails) => void
+} | undefined
+
 declare module '*.css' {
   const cssText: string
   export default cssText

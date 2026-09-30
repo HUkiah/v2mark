@@ -6,6 +6,7 @@ import { StoreService } from './store-service'
 import {
   type DavResponse,
   type WebDavConfig,
+  davRequest,
   EMPTY_CONFIG,
   isConfigured,
   loadSyncConfig,
@@ -93,6 +94,30 @@ describe('isConfigured', () => {
     expect(isConfigured(makeConfig())).toBe(true)
     expect(isConfigured(makeConfig({ password: '' }))).toBe(false)
     expect(isConfigured(makeConfig({ url: 'ftp://x' }))).toBe(false)
+  })
+})
+
+describe('跨域请求函数解析', () => {
+  it('只提供 GM.xmlHttpRequest（Stay/Userscripts 形态）时也能请求', async () => {
+    const calls: Array<{ method: string; url: string }> = []
+    vi.stubGlobal('GM', {
+      xmlHttpRequest: (details: {
+        method: string
+        url: string
+        onload: (r: { status: number; responseText: string }) => void
+      }) => {
+        calls.push({ method: details.method, url: details.url })
+        setTimeout(
+          () => details.onload({ status: 404, responseText: '' }),
+          0
+        )
+      },
+    })
+    // 不再 stub 老式 GM_xmlHttpRequest，模拟只有新式接口的管理器
+    const config = makeConfig()
+    const get = await davRequest('GET', 'https://dav.example.com/dav/x', config)
+    expect(get.status).toBe(404)
+    expect(calls[0]?.method).toBe('GET')
   })
 })
 
