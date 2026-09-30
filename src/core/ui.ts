@@ -221,7 +221,7 @@ export function openManager(
   const importBtn = document.createElement('button')
   importBtn.type = 'button'
   importBtn.className = 'v2mark-btn'
-  importBtn.textContent = '导入（V2Mark / UTags）'
+  importBtn.textContent = '导入数据'
   const exportBtn = document.createElement('button')
   exportBtn.type = 'button'
   exportBtn.className = 'v2mark-btn'
@@ -452,26 +452,99 @@ export function openManager(
     )
   })
 
-  importBtn.addEventListener('click', () => {
-    const json = window.prompt(
-      '粘贴导入数据（V2Mark 导出格式或 UTags 导出格式），将与现有数据合并：'
-    )
-    if (!json) {
+  // 导入区：选择文件或粘贴 JSON，二选一
+  const importBox = document.createElement('div')
+  importBox.className = 'v2mark-manager-import'
+  importBox.style.display = 'none'
+
+  const importHint = document.createElement('div')
+  importHint.className = 'v2mark-manager-hint'
+  importHint.textContent =
+    '选择导出的 .json 文件，或把文件内容粘贴到下面（不是文件路径）。支持 V2Mark 与 UTags 两种格式，将与现有数据合并。'
+
+  const importArea = document.createElement('textarea')
+  importArea.className = 'v2mark-import-textarea'
+  importArea.rows = 4
+  importArea.placeholder = '把 JSON 文件的完整内容粘贴到这里…'
+
+  const fileInput = document.createElement('input')
+  fileInput.type = 'file'
+  fileInput.accept = '.json,application/json'
+  fileInput.style.display = 'none'
+  const fileName = document.createElement('span')
+  fileName.className = 'v2mark-manager-status'
+
+  const pickFileBtn = document.createElement('button')
+  pickFileBtn.type = 'button'
+  pickFileBtn.className = 'v2mark-btn'
+  pickFileBtn.textContent = '选择文件…'
+  pickFileBtn.addEventListener('click', () => {
+    fileInput.click()
+  })
+
+  let fileText = ''
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0]
+    if (!file) {
+      return
+    }
+    void file
+      .text()
+      .then((text) => {
+        fileText = text
+        fileName.textContent = `已选文件：${file.name}`
+      })
+      .catch(() => {
+        fileName.textContent = '读取文件失败，请改用粘贴方式'
+      })
+  })
+
+  const doImportBtn = document.createElement('button')
+  doImportBtn.type = 'button'
+  doImportBtn.className = 'v2mark-btn v2mark-btn-primary'
+  doImportBtn.textContent = '导入'
+  doImportBtn.addEventListener('click', () => {
+    const text = importArea.value.trim() || fileText
+    if (!text) {
+      status.textContent = '请先选择文件，或粘贴 JSON 内容'
       return
     }
     void service
-      .importJson(json)
+      .importJson(text)
       .then((count) => {
-        status.textContent = `已导入 ${count} 条`
+        status.textContent = `已导入 ${count} 条，当前共 ${service.aliveEntries().length} 条`
+        importBox.style.display = 'none'
+        importArea.value = ''
+        fileText = ''
+        fileName.textContent = ''
+        fileInput.value = ''
         refresh()
         onChanged()
       })
       .catch((error: unknown) => {
-        window.alert(`导入失败：${error instanceof Error ? error.message : error}`)
+        status.textContent = `导入失败：${error instanceof Error ? error.message : error}`
       })
   })
 
-  box.append(bar, tools, syncBox, status, list)
+  const cancelImportBtn = document.createElement('button')
+  cancelImportBtn.type = 'button'
+  cancelImportBtn.className = 'v2mark-btn'
+  cancelImportBtn.textContent = '收起'
+  cancelImportBtn.addEventListener('click', () => {
+    importBox.style.display = 'none'
+  })
+
+  const importActions = document.createElement('div')
+  importActions.className = 'v2mark-manager-tools'
+  importActions.append(pickFileBtn, doImportBtn, cancelImportBtn, fileName)
+  importBox.append(importHint, importArea, importActions)
+
+  importBtn.addEventListener('click', () => {
+    importBox.style.display =
+      importBox.style.display === 'none' ? 'flex' : 'none'
+  })
+
+  box.append(bar, tools, importBox, syncBox, status, list)
   overlay.append(box)
   document.body.append(overlay)
   overlay.addEventListener('click', (event) => {

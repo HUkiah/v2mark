@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.1
+// @version      0.2.2
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -367,6 +367,29 @@
 .v2mark-sync-check {
   white-space: nowrap;
   color: #555;
+}
+
+/* ---------- \u5BFC\u5165\u533A ---------- */
+
+.v2mark-manager-import {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e4e9f0;
+  border-radius: 6px;
+  background: #fafbfd;
+}
+
+.v2mark-import-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ccd4de;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
 }
 `;
 
@@ -1120,7 +1143,7 @@
     const importBtn = document.createElement("button");
     importBtn.type = "button";
     importBtn.className = "v2mark-btn";
-    importBtn.textContent = "\u5BFC\u5165\uFF08V2Mark / UTags\uFF09";
+    importBtn.textContent = "\u5BFC\u5165\u6570\u636E";
     const exportBtn = document.createElement("button");
     exportBtn.type = "button";
     exportBtn.className = "v2mark-btn";
@@ -1303,22 +1326,80 @@
         service.exportUtagsJson()
       );
     });
-    importBtn.addEventListener("click", () => {
-      const json = window.prompt(
-        "\u7C98\u8D34\u5BFC\u5165\u6570\u636E\uFF08V2Mark \u5BFC\u51FA\u683C\u5F0F\u6216 UTags \u5BFC\u51FA\u683C\u5F0F\uFF09\uFF0C\u5C06\u4E0E\u73B0\u6709\u6570\u636E\u5408\u5E76\uFF1A"
-      );
-      if (!json) {
+    const importBox = document.createElement("div");
+    importBox.className = "v2mark-manager-import";
+    importBox.style.display = "none";
+    const importHint = document.createElement("div");
+    importHint.className = "v2mark-manager-hint";
+    importHint.textContent = "\u9009\u62E9\u5BFC\u51FA\u7684 .json \u6587\u4EF6\uFF0C\u6216\u628A\u6587\u4EF6\u5185\u5BB9\u7C98\u8D34\u5230\u4E0B\u9762\uFF08\u4E0D\u662F\u6587\u4EF6\u8DEF\u5F84\uFF09\u3002\u652F\u6301 V2Mark \u4E0E UTags \u4E24\u79CD\u683C\u5F0F\uFF0C\u5C06\u4E0E\u73B0\u6709\u6570\u636E\u5408\u5E76\u3002";
+    const importArea = document.createElement("textarea");
+    importArea.className = "v2mark-import-textarea";
+    importArea.rows = 4;
+    importArea.placeholder = "\u628A JSON \u6587\u4EF6\u7684\u5B8C\u6574\u5185\u5BB9\u7C98\u8D34\u5230\u8FD9\u91CC\u2026";
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json,application/json";
+    fileInput.style.display = "none";
+    const fileName = document.createElement("span");
+    fileName.className = "v2mark-manager-status";
+    const pickFileBtn = document.createElement("button");
+    pickFileBtn.type = "button";
+    pickFileBtn.className = "v2mark-btn";
+    pickFileBtn.textContent = "\u9009\u62E9\u6587\u4EF6\u2026";
+    pickFileBtn.addEventListener("click", () => {
+      fileInput.click();
+    });
+    let fileText = "";
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      if (!file) {
         return;
       }
-      void service.importJson(json).then((count) => {
-        status.textContent = `\u5DF2\u5BFC\u5165 ${count} \u6761`;
+      void file.text().then((text) => {
+        fileText = text;
+        fileName.textContent = `\u5DF2\u9009\u6587\u4EF6\uFF1A${file.name}`;
+      }).catch(() => {
+        fileName.textContent = "\u8BFB\u53D6\u6587\u4EF6\u5931\u8D25\uFF0C\u8BF7\u6539\u7528\u7C98\u8D34\u65B9\u5F0F";
+      });
+    });
+    const doImportBtn = document.createElement("button");
+    doImportBtn.type = "button";
+    doImportBtn.className = "v2mark-btn v2mark-btn-primary";
+    doImportBtn.textContent = "\u5BFC\u5165";
+    doImportBtn.addEventListener("click", () => {
+      const text = importArea.value.trim() || fileText;
+      if (!text) {
+        status.textContent = "\u8BF7\u5148\u9009\u62E9\u6587\u4EF6\uFF0C\u6216\u7C98\u8D34 JSON \u5185\u5BB9";
+        return;
+      }
+      void service.importJson(text).then((count) => {
+        status.textContent = `\u5DF2\u5BFC\u5165 ${count} \u6761\uFF0C\u5F53\u524D\u5171 ${service.aliveEntries().length} \u6761`;
+        importBox.style.display = "none";
+        importArea.value = "";
+        fileText = "";
+        fileName.textContent = "";
+        fileInput.value = "";
         refresh();
         onChanged();
       }).catch((error) => {
-        window.alert(`\u5BFC\u5165\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`);
+        status.textContent = `\u5BFC\u5165\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`;
       });
     });
-    box.append(bar, tools, syncBox, status, list);
+    const cancelImportBtn = document.createElement("button");
+    cancelImportBtn.type = "button";
+    cancelImportBtn.className = "v2mark-btn";
+    cancelImportBtn.textContent = "\u6536\u8D77";
+    cancelImportBtn.addEventListener("click", () => {
+      importBox.style.display = "none";
+    });
+    const importActions = document.createElement("div");
+    importActions.className = "v2mark-manager-tools";
+    importActions.append(pickFileBtn, doImportBtn, cancelImportBtn, fileName);
+    importBox.append(importHint, importArea, importActions);
+    importBtn.addEventListener("click", () => {
+      importBox.style.display = importBox.style.display === "none" ? "flex" : "none";
+    });
+    box.append(bar, tools, importBox, syncBox, status, list);
     overlay.append(box);
     document.body.append(overlay);
     overlay.addEventListener("click", (event) => {
@@ -1342,7 +1423,7 @@
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.1"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.2"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {
