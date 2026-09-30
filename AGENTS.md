@@ -48,8 +48,15 @@ npm run build      # 构建 dist/v2mark.user.js（不压缩，GreasyFork 规则�
 
 ## 当前状态
 
-v0.2.0（M2 WebDAV）已实现：标签渲染、编辑面板、管理面板、UTags 互通、WebDAV 同步（条目级合并、变更后 3 秒自动推送、PUT 409 自动建目录）。37 个单测（vitest；DOM 集成测试用 happy-dom，文件头标注 `@vitest-environment happy-dom`）。
+v0.2.7：M1 + M2 已完成并通过真机验收（2026-09-30，双设备 WebDAV 同步验证通过）。标签渲染、编辑面板、管理面板、UTags 互通导入导出、WebDAV 同步（条目级合并、变更后 3 秒自动推送、PUT 409 自动建目录）。40 个单测（vitest；DOM 集成测试用 happy-dom，文件头标注 `@vitest-environment happy-dom`）。
+
+兼容性备忘（真机踩过的坑，改动相关代码时勿回退）：
+
+- Tampermonkey 5.5.0（MV3）不注入老式 `GM_xmlHttpRequest`，`GM` 对象的成员需单独 `@grant GM.xmlHttpRequest`。头部两种形态都授权，请求层两种都解析（core/sync.ts 的 resolveXhr）。
+- 坚果云对父目录不存在的文件 GET 返回 409（标准 WebDAV 为 404），409/404 都视为远端无数据。
+- V2EX 回复区头像包在 member 链接里（a > img），扫描时跳过含 img 的链接。
+- 悬停图标显示由 JS 加 class 管理（core/dom.ts 的 bindHoverReveal），不能用纯 CSS 相邻兄弟选择器（零宽容器 + margin 死区会点不到）。
 
 同步模块（core/sync.ts）的硬约束：凭据只经 readSetting/writeSetting 存本设备（key `v2mark.sync`），绝不放进 BookmarksStore（store 会被导出和同步）。同步引发的落盘走 `service.mergeFrom`（persist(false)），不触发变更回调，防止同步循环。
 
-待办：真机验收（见 CONTRIBUTING.md 三条）；Gist 通道、V2EX 记事本实验通道待定；M3 扩展版。线上 v2ex.com 有 Cloudflare 挑战页，自动化浏览器进不去，DOM 验证一律走 happy-dom 集成测试。
+待办：对外发布（GreasyFork、V2EX 首发帖）；Gist 通道、V2EX 记事本实验通道待定；M3 扩展版。线上 v2ex.com 有 Cloudflare 挑战页，自动化浏览器进不去，DOM 验证一律走 happy-dom 集成测试。
