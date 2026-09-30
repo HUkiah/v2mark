@@ -146,6 +146,45 @@ describe('renderPage 帖子页渲染', () => {
     expect(edits[0]?.[1]).toBe('alice')
     expect(edits[0]?.[0]).toBe(memberKey('alice'))
   })
+
+  it('悬停用户名进入 hover 态（JS 管理），移出后延迟恢复', async () => {
+    vi.useFakeTimers()
+    try {
+      const service = await makeService({ alice: [] })
+      setupListPage()
+      const edits: string[] = []
+      renderPage(service, (key) => {
+        edits.push(key)
+      })
+      const link = document.querySelector<HTMLElement>(
+        'a[href*="/member/alice"]'
+      )
+      const container = document.querySelector<HTMLElement>(
+        'a[href*="/member/alice"] + .v2mark-tags'
+      )
+      expect(link).toBeTruthy()
+      expect(container?.classList.contains('v2mark-hover')).toBe(false)
+
+      link?.dispatchEvent(new MouseEvent('mouseenter'))
+      expect(container?.classList.contains('v2mark-hover')).toBe(true)
+
+      // hover 态下按钮可点击
+      container?.querySelector<HTMLButtonElement>('.v2mark-captain')?.click()
+      expect(edits).toHaveLength(1)
+
+      // 移出后有 250ms 缓冲，期间再次进入会取消隐藏
+      link?.dispatchEvent(new MouseEvent('mouseleave'))
+      container?.dispatchEvent(new MouseEvent('mouseenter'))
+      vi.advanceTimersByTime(300)
+      expect(container?.classList.contains('v2mark-hover')).toBe(true)
+
+      container?.dispatchEvent(new MouseEvent('mouseleave'))
+      vi.advanceTimersByTime(300)
+      expect(container?.classList.contains('v2mark-hover')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('renderPage 个人主页', () => {

@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.0
+// @version      0.2.1
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -41,8 +41,13 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-left: 4px;
+  /* \u7528 padding \u6865\u63A5\u4E0E\u7528\u6237\u540D\u4E4B\u95F4\u7684\u7A7A\u9699\uFF1Amargin \u4E0D\u54CD\u5E94 hover\uFF0C\u4F1A\u5F62\u6210\u70B9\u4E0D\u5230\u7684\u6B7B\u533A */
+  margin-left: 0;
+  padding-left: 2px;
   vertical-align: middle;
+  position: relative;
+  /* \u9632\u6B62\u9875\u9762\u6D6E\u52A8\u5143\u7D20\u76D6\u4F4F\u6807\u7B7E\u533A\uFF0C\u541E\u6389\u70B9\u51FB */
+  z-index: 5;
 }
 
 .v2mark-tag {
@@ -57,7 +62,8 @@
   white-space: nowrap;
 }
 
-/* \u60AC\u505C\u7528\u6237\u540D\u6216\u6807\u7B7E\u533A\u57DF\u65F6\u51FA\u73B0\u7684\u7F16\u8F91\u56FE\u6807 */
+/* \u60AC\u505C\u7528\u6237\u540D\u6216\u6807\u7B7E\u533A\u57DF\u65F6\u51FA\u73B0\u7684\u7F16\u8F91\u56FE\u6807\u3002
+   \u663E\u793A\u72B6\u6001\u7531 JS \u52A0 v2mark-hover \u7C7B\u63A7\u5236\uFF08\u89C1 core/dom\uFF09\uFF0C:hover \u4F5C\u515C\u5E95 */
 .v2mark-captain {
   display: none;
   border: none;
@@ -67,12 +73,17 @@
   line-height: 18px;
   cursor: pointer;
   opacity: 0.55;
+  user-select: none;
+  pointer-events: auto;
 }
 
-a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
-.content h1:hover + .v2mark-tags .v2mark-captain,
-.v2mark-tags:hover .v2mark-captain {
+.v2mark-tags:hover .v2mark-captain,
+.v2mark-tags.v2mark-hover .v2mark-captain {
   display: inline-block;
+}
+
+.v2mark-captain:hover {
+  opacity: 1;
 }
 
 /* ---------- \u7279\u6B8A\u6807\u7B7E\u7684\u5217\u8868\u7EA7\u6548\u679C ---------- */
@@ -424,6 +435,24 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
     const key = memberKey(name);
     renderTagsAfter(h1, key, name, service, onEdit);
   }
+  var HOVER_CLASS = "v2mark-hover";
+  function bindHoverReveal(target, container) {
+    let hideTimer;
+    const show = () => {
+      window.clearTimeout(hideTimer);
+      container.classList.add(HOVER_CLASS);
+    };
+    const scheduleHide = () => {
+      window.clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(() => {
+        container.classList.remove(HOVER_CLASS);
+      }, 250);
+    };
+    target.addEventListener("mouseenter", show);
+    target.addEventListener("mouseleave", scheduleHide);
+    container.addEventListener("mouseenter", show);
+    container.addEventListener("mouseleave", scheduleHide);
+  }
   function renderTagsAfter(target, key, name, service, onEdit) {
     const existing = target.nextElementSibling;
     if (existing?.classList.contains(TAGS_CLASS)) {
@@ -452,6 +481,7 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
       container.append(chip);
     }
     container.dataset.v2markTags = tags.join(",");
+    bindHoverReveal(target, container);
     target.after(container);
   }
   function updateListEffects(root) {
@@ -1312,7 +1342,7 @@ a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.0"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.1"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {

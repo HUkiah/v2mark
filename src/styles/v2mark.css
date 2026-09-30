@@ -6,8 +6,13 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-left: 4px;
+  /* 用 padding 桥接与用户名之间的空隙：margin 不响应 hover，会形成点不到的死区 */
+  margin-left: 0;
+  padding-left: 2px;
   vertical-align: middle;
+  position: relative;
+  /* 防止页面浮动元素盖住标签区，吞掉点击 */
+  z-index: 5;
 }
 
 .v2mark-tag {
@@ -22,7 +27,8 @@
   white-space: nowrap;
 }
 
-/* 悬停用户名或标签区域时出现的编辑图标 */
+/* 悬停用户名或标签区域时出现的编辑图标。
+   显示状态由 JS 加 v2mark-hover 类控制（见 core/dom），:hover 作兜底 */
 .v2mark-captain {
   display: none;
   border: none;
@@ -32,12 +38,17 @@
   line-height: 18px;
   cursor: pointer;
   opacity: 0.55;
+  user-select: none;
+  pointer-events: auto;
 }
 
-a[href*="/member/"]:hover + .v2mark-tags .v2mark-captain,
-.content h1:hover + .v2mark-tags .v2mark-captain,
-.v2mark-tags:hover .v2mark-captain {
+.v2mark-tags:hover .v2mark-captain,
+.v2mark-tags.v2mark-hover .v2mark-captain {
   display: inline-block;
+}
+
+.v2mark-captain:hover {
+  opacity: 1;
 }
 
 /* ---------- 特殊标签的列表级效果 ---------- */

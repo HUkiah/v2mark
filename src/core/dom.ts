@@ -57,6 +57,31 @@ function renderProfileTitle(service: StoreService, onEdit: EditHandler): void {
   renderTagsAfter(h1, key, name, service, onEdit)
 }
 
+const HOVER_CLASS = 'v2mark-hover'
+
+/**
+ * 悬停状态由 JS 管理（mouseenter 加 class，mouseleave 延迟移除），
+ * 不依赖 CSS 相邻兄弟选择器：零宽容器 + margin 死区会让纯 CSS 方案
+ * 出现"按钮闪现但点不到"的问题，插入第三方元素也会断掉选择器链。
+ */
+function bindHoverReveal(target: HTMLElement, container: HTMLElement): void {
+  let hideTimer: number | undefined
+  const show = () => {
+    window.clearTimeout(hideTimer)
+    container.classList.add(HOVER_CLASS)
+  }
+  const scheduleHide = () => {
+    window.clearTimeout(hideTimer)
+    hideTimer = window.setTimeout(() => {
+      container.classList.remove(HOVER_CLASS)
+    }, 250)
+  }
+  target.addEventListener('mouseenter', show)
+  target.addEventListener('mouseleave', scheduleHide)
+  container.addEventListener('mouseenter', show)
+  container.addEventListener('mouseleave', scheduleHide)
+}
+
 /**
  * 在目标元素后面渲染标签容器。重复调用是幂等的：先移除旧容器再插入新的。
  * 容器带 data-v2mark-key 与 data-v2mark-tags（逗号分隔），
@@ -101,6 +126,7 @@ function renderTagsAfter(
   }
 
   container.dataset.v2markTags = tags.join(',')
+  bindHoverReveal(target, container)
   target.after(container)
 }
 
