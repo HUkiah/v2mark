@@ -59,6 +59,19 @@ function setupListPage() {
         <div class="cell" id="r_2">
           <strong><a class="dark" href="/member/carol">carol</a></strong>
         </div>
+        <div class="cell" id="r_3">
+          <table>
+            <tr>
+              <td width="48">
+                <a href="/member/dave"><img class="avatar" width="48" src="/avatar/dave.png" alt="dave"></a>
+              </td>
+              <td>
+                <div class="reply_content">头像用户的回复</div>
+                <div class="ago"><strong><a class="dark" href="/member/dave">dave</a></strong></div>
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
     </div>`
 }
@@ -93,6 +106,20 @@ describe('renderPage 帖子页渲染', () => {
     expect(carolTags?.querySelectorAll('.v2mark-tag')).toHaveLength(0)
     expect(carolTags?.querySelector('.v2mark-captain')).toBeTruthy()
 
+    // 头像链接（a > img）不渲染标签，同一行的用户名链接正常渲染
+    const avatarLink = document.querySelector<HTMLAnchorElement>(
+      '#r_3 td a[href*="/member/dave"]'
+    )
+    expect(
+      avatarLink?.nextElementSibling?.classList.contains('v2mark-tags') ?? false
+    ).toBe(false)
+    const daveNameLink = document.querySelector<HTMLAnchorElement>(
+      '#r_3 .ago a[href*="/member/dave"]'
+    )
+    expect(
+      daveNameLink?.nextElementSibling?.classList.contains('v2mark-tags')
+    ).toBe(true)
+
     // 导航里的 member 链接不渲染
     expect(
       document.querySelector('a[href*="/member/navuser"] + .v2mark-tags')
@@ -126,9 +153,10 @@ describe('renderPage 帖子页渲染', () => {
     expect(
       document.querySelectorAll('a[href*="/member/alice"] + .v2mark-tags')
     ).toHaveLength(1)
+    // member 链接共 6 个：导航 1 个被排除，dave 的头像 1 个被排除，渲染 4 个
     expect(wrappers.length).toBe(
-      document.querySelectorAll('a[href*="/member/"]').length - 1
-    ) // 减去导航里被排除的
+      document.querySelectorAll('a[href*="/member/"]').length - 2
+    )
   })
 
   it('点击编辑图标触发 onEdit，带回正确的 key', async () => {

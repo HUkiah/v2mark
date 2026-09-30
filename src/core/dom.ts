@@ -34,6 +34,10 @@ function renderMemberLinks(service: StoreService, onEdit: EditHandler): void {
     if (isExcluded(link)) {
       continue
     }
+    // 回复区头像也包在 member 链接里（a > img.avatar），只给用户名挂标签
+    if (link.querySelector('img')) {
+      continue
+    }
     const name = memberNameFromHref(link.href)
     if (!name) {
       continue
