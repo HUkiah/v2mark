@@ -2,7 +2,7 @@
 // @name         V2Mark - V2EX 用户标签
 // @name:en      V2Mark - User tags for V2EX
 // @namespace    https://github.com/HUkiah/v2mark
-// @version      0.2.6
+// @version      0.2.7
 // @description  给 V2EX 的网友做记号：用户标签、特殊标签过滤，数据自主、可同步。
 // @description:en  Add tags to V2EX members. Local-first, sync-ready, UTags-compatible data.
 // @author       HUkiah
@@ -15,6 +15,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_xmlHttpRequest
+// @grant        GM.xmlHttpRequest
 // @grant        GM_info
 // @connect      dav.jianguoyun.com
 // @connect      dav.dropdav.com
@@ -1451,7 +1452,7 @@
   }
   var AUTO_SYNC_DEBOUNCE_MS = 3e3;
   async function main() {
-    console.log(`[V2Mark] v${"0.2.6"} \u5DF2\u52A0\u8F7D`, location.host);
+    console.log(`[V2Mark] v${"0.2.7"} \u5DF2\u52A0\u8F7D`, location.host);
     const service = new StoreService(createGmStorage());
     await service.init();
     const renderAll = () => {
@@ -1504,6 +1505,7 @@
           managerVersion: GM_info.version,
           scriptVersion: GM_info.script?.version
         } : null;
+        const gmObj = g.GM;
         const diag = {
           time: (/* @__PURE__ */ new Date()).toISOString(),
           ua: navigator.userAgent,
@@ -1517,6 +1519,9 @@
             GM_info: probe("GM_info"),
             unsafeWindow: probe("unsafeWindow")
           },
+          gmMembers: gmObj ? Object.keys(gmObj).map(
+            (k) => `${k}:${typeof gmObj[k]}`
+          ) : null,
           syncConfigured: isConfigured(loadSyncConfig())
         };
         const text = JSON.stringify(diag);

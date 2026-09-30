@@ -89,6 +89,7 @@ async function main(): Promise<void> {
               scriptVersion: GM_info.script?.version,
             }
           : null
+      const gmObj = g.GM as Record<string, unknown> | undefined
       const diag = {
         time: new Date().toISOString(),
         ua: navigator.userAgent,
@@ -102,6 +103,11 @@ async function main(): Promise<void> {
           GM_info: probe('GM_info'),
           unsafeWindow: probe('unsafeWindow'),
         },
+        gmMembers: gmObj
+          ? Object.keys(gmObj).map(
+              (k) => `${k}:${typeof gmObj[k]}`
+            )
+          : null,
         syncConfigured: isConfigured(loadSyncConfig()),
       }
       const text = JSON.stringify(diag)

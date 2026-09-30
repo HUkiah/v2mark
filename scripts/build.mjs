@@ -30,6 +30,7 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_xmlHttpRequest
+// @grant        GM.xmlHttpRequest
 // @grant        GM_info
 // @connect      dav.jianguoyun.com
 // @connect      dav.dropdav.com
